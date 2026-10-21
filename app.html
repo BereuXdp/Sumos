@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel · Sumos.app</title>
+  <link rel="icon" type="image/png" href="assets/img/sumos-plus.png">
+  <meta name="theme-color" content="#F5F5F7">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css?v=64">
+  <link rel="stylesheet" href="assets/os.css?v=64">
+  <link rel="stylesheet" href="assets/mobile.css?v=64">
+  <script src="assets/icons.js?v=64"></script>
+</head>
+<body>
+  <div class="ambient"><span></span><span></span><span></span></div>
+
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="brand-mark"><img src="assets/img/sumos-plus.png" alt=""></span><span>Sumos<b>.app</b></span></div>
+      <nav class="nav" id="nav"></nav>
+      <div class="side-foot">
+        <div class="user-chip">
+          <span class="avatar" id="userAvatar">GA</span>
+          <div><strong id="userName">Gabriel</strong><small>Administrador</small></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar glass">
+        <button class="icon-btn menu-toggle" id="menuBtn" aria-label="Abrir menu"></button>
+        <button class="icon-btn collapse-btn hide-sm" id="collapseBtn" aria-label="Recolher menu lateral"></button>
+        <button class="search-btn" id="searchBtn"><span data-icon="search"></span><span>Buscar OS, cliente, peça...</span><kbd>Ctrl K</kbd></button>
+        <div class="spacer"></div>
+        <button class="btn btn-primary hide-sm" id="quickNew"><span data-icon="plus"></span>Nova OS</button>
+        <button class="icon-btn" id="themeBtn" aria-label="Alternar tema"></button>
+        <div style="position:relative">
+          <button class="icon-btn" id="notifBtn" aria-label="Notificações"><span data-icon="bell"></span><span class="dot" id="notifDot"></span></button>
+          <div class="popover" id="notifPop"></div>
+        </div>
+        <button class="icon-btn" id="logoutBtn" aria-label="Sair" title="Sair"><span data-icon="logout"></span></button>
+      </header>
+
+      <main id="view"></main>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="drawer" aria-modal="true" role="dialog"></aside>
+
+  <div class="palette" id="palette" role="dialog" aria-label="Busca rápida">
+    <span class="p-ico" data-icon="search"></span>
+    <input id="paletteInput" placeholder="Buscar OS, clientes, peças ou ações..." autocomplete="off">
+    <div class="results" id="paletteResults"></div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+  <div id="printArea" hidden></div>
+
+  <script src="assets/data.js?v=64"></script>
+  <script src="assets/app.js?v=64"></script>
+  <script src="assets/os.js?v=64"></script>
+  <script src="assets/agenda.js?v=64"></script>
+  <script src="assets/modules.js?v=64"></script>
+  <script src="assets/catalogo.js?v=64"></script>
+  <script src="assets/rma.js?v=64"></script>
+  <script src="assets/relatorios.js?v=64"></script>
+  <script src="assets/configuracoes.js?v=64"></script>
+  <script src="assets/contato.js?v=64"></script>
+  <script src="assets/mobile.js?v=64"></script>
+  <script src="assets/fab.js?v=64"></script>
+  <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+  <script src="assets/motion-ui.js?v=64"></script>
+</body>
+</html>

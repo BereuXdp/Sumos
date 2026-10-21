@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar · Sumos.app</title>
+  <link rel="icon" type="image/png" href="assets/img/sumos-plus.png">
+  <meta name="theme-color" content="#F5F5F7">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css?v=64">
+  <script src="assets/icons.js?v=64"></script>
+</head>
+<body>
+  <div class="ambient"><span></span><span></span><span></span></div>
+
+  <main class="auth">
+    <!-- Lado esquerdo: apresentação -->
+    <section class="auth-hero" aria-label="Sobre o Sumos">
+      <div class="orb o1"></div><div class="orb o2"></div>
+      <div class="brand"><span class="brand-mark"><img src="assets/img/sumos-plus.png" alt=""></span><span>Sumos<b>.app</b></span></div>
+
+      <h1>Sua assistência técnica <span>organizada.</span></h1>
+      <p class="lead">Ordens de serviço, agenda, estoque e financeiro num só lugar.</p>
+
+      <div class="hero-preview" aria-hidden="true">
+        <div class="hero-card">
+          <small>OS abertas hoje</small>
+          <strong>24</strong>
+          <div class="bar"><i style="width:68%"></i></div>
+        </div>
+        <div class="hero-card">
+          <small>Faturamento do mês</small>
+          <strong>R$ 38,4 mil</strong>
+          <div class="bar"><i style="width:82%"></i></div>
+        </div>
+        <div class="hero-card wide">
+          <div><small>Prazo médio de reparo</small><strong>1,8 dia</strong></div>
+          <svg viewBox="0 0 200 54" preserveAspectRatio="none">
+            <defs><linearGradient id="hg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4DA3FF" stop-opacity=".5"/><stop offset="1" stop-color="#4DA3FF" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0 40 C20 34 30 18 50 22 S80 44 100 30 S140 8 160 16 S190 26 200 10 V54 H0Z" fill="url(#hg)"/>
+            <path d="M0 40 C20 34 30 18 50 22 S80 44 100 30 S140 8 160 16 S190 26 200 10" fill="none" stroke="#99CAFF" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="hero-feats">
+        <span data-icon="devices">Computador e celular</span>
+        <span data-icon="shield">Backup automático</span>
+        <span data-icon="calendar">Prazos e agenda</span>
+      </div>
+      <footer>© 2026 Sumos Tecnologia. Todos os direitos reservados.</footer>
+    </section>
+
+    <!-- Lado direito: formulário -->
+    <section class="auth-panel">
+      <div class="auth-tools">
+        <button class="icon-btn" id="themeBtn" type="button" aria-label="Alternar tema claro/escuro"></button>
+      </div>
+
+      <div class="auth-card glass">
+        <!-- Login -->
+        <div id="tab-login">
+          <h2>Bem-vindo de volta</h2>
+          <p class="sub">Entre com seu e-mail e senha para acessar o painel.</p>
+
+          <form class="auth-form" id="loginForm" novalidate>
+            <div class="field">
+              <label for="email">E-mail</label>
+              <div class="input-wrap">
+                <span data-icon="mail"></span>
+                <input class="input" id="email" type="email" placeholder="nome@empresa.com" autocomplete="username" required>
+              </div>
+              <div class="err" id="emailErr"></div>
+            </div>
+
+            <div class="field">
+              <div class="row-between">
+                <label for="password">Senha</label>
+                <a href="#" id="forgotLink" style="font-size:13px">Esqueceu a senha?</a>
+              </div>
+              <div class="input-wrap">
+                <span data-icon="lock"></span>
+                <input class="input" id="password" type="password" placeholder="Qualquer senha" autocomplete="current-password">
+                <button class="btn btn-icon btn-sm suffix" type="button" id="togglePw" aria-label="Mostrar senha" style="background:transparent;color:var(--text-3)"></button>
+              </div>
+              <div class="hint warn" id="capsWarn" hidden></div>
+              <div class="err" id="pwErr"></div>
+            </div>
+
+            <div class="row-between">
+              <label class="check"><input type="checkbox" id="remember" checked> Lembrar meu e-mail</label>
+            </div>
+
+            <button class="btn btn-primary" type="submit" id="submitBtn" style="height:46px">Entrar no painel</button>
+          </form>
+        </div>
+
+        <!-- Recuperar senha -->
+        <div id="tab-forgot" hidden>
+          <h2>Recuperar senha</h2>
+          <p class="sub">Enviaremos um link de redefinição para o seu e-mail.</p>
+          <form class="auth-form" id="forgotForm" novalidate>
+            <div class="field">
+              <label for="fEmail">E-mail</label>
+              <div class="input-wrap"><span data-icon="mail"></span><input class="input" id="fEmail" type="email" placeholder="nome@empresa.com" required></div>
+              <div class="err" id="fErr"></div>
+            </div>
+            <button class="btn btn-primary" type="submit" style="height:46px">Enviar link</button>
+            <button class="btn btn-ghost" type="button" id="backToLogin">Voltar para o login</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    document.querySelectorAll('[data-icon]').forEach((el) => el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon)));
+
+    function toast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = icon('check') + `<span>${msg}</span>`;
+      $('#toasts').append(t);
+      setTimeout(() => t.remove(), 3200);
+    }
+
+    // Tema
+    const themeBtn = $('#themeBtn');
+    const paintTheme = () => (themeBtn.innerHTML = icon(Theme.isDark() ? 'sun' : 'moon'));
+    paintTheme();
+    themeBtn.onclick = () => { Theme.toggle(); paintTheme(); };
+
+    // Login / esqueci a senha
+    function show(tab) {
+      ['login', 'forgot'].forEach((t) => ($('#tab-' + t).hidden = t !== tab));
+    }
+    $('#forgotLink').onclick = (e) => { e.preventDefault(); $('#fEmail').value = $('#email').value; show('forgot'); };
+    $('#backToLogin').onclick = () => show('login');
+
+    // Lembrar e-mail
+    try {
+      const saved = localStorage.getItem('sumos-email');
+      if (saved) { $('#email').value = saved; }
+    } catch {}
+    ($('#email').value ? $('#password') : $('#email')).focus();
+
+    // Mostrar/ocultar senha
+    const pw = $('#password');
+    const tg = $('#togglePw');
+    const paintPw = () => {
+      tg.innerHTML = icon(pw.type === 'password' ? 'eye' : 'eyeOff');
+      tg.setAttribute('aria-label', pw.type === 'password' ? 'Mostrar senha' : 'Ocultar senha');
+    };
+    paintPw();
+    tg.onclick = () => { pw.type = pw.type === 'password' ? 'text' : 'password'; paintPw(); pw.focus(); };
+
+    // Aviso de Caps Lock
+    const caps = $('#capsWarn');
+    pw.addEventListener('keyup', (e) => {
+      const on = e.getModifierState && e.getModifierState('CapsLock');
+      caps.hidden = !on;
+      caps.innerHTML = icon('alert') + 'Caps Lock está ativado';
+    });
+
+    const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    function setErr(input, el, msg) {
+      input.classList.toggle('invalid', !!msg);
+      el.textContent = msg || '';
+    }
+
+    $('#loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = $('#email'), btn = $('#submitBtn');
+      let ok = true;
+      if (!emailOk(email.value.trim())) { setErr(email, $('#emailErr'), 'Informe um e-mail válido.'); ok = false; } else setErr(email, $('#emailErr'));
+      // Protótipo: qualquer senha entra (até em branco)
+      setErr(pw, $('#pwErr'));
+      if (!ok) return;
+
+      try {
+        if ($('#remember').checked) localStorage.setItem('sumos-email', email.value.trim());
+        else localStorage.removeItem('sumos-email');
+        sessionStorage.setItem('sumos-user', email.value.trim());
+      } catch {}
+
+      // Protótipo: simula a autenticação e abre o painel
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Entrando...';
+      setTimeout(() => (location.href = 'app.html'), 900);
+    });
+    ['email', 'password'].forEach((id) => $('#' + id).addEventListener('input', (e) => e.target.classList.remove('invalid')));
+
+    $('#forgotForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = $('#fEmail');
+      if (!emailOk(f.value.trim())) return setErr(f, $('#fErr'), 'Informe um e-mail válido.');
+      setErr(f, $('#fErr'));
+      toast(`Link enviado para ${f.value.trim()}`);
+      show('login');
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+  <script>
+    // Entrada do login com Motion (respeita “reduzir movimento”)
+    (function () {
+      const M = window.Motion;
+      if (!M || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const spring = { type: "spring", stiffness: 260, damping: 28 };
+      const clear = (els) => els.forEach((el) => { el.style.opacity = ""; el.style.transform = ""; });
+      const go = (els, kf, opts) => { els = els.filter(Boolean); const a = M.animate(els, kf, opts); a.then(() => clear(els), () => clear(els)); };
+      go([document.querySelector(".auth-hero")], { opacity: [0, 1], y: [24, 0] }, spring);
+      go([...document.querySelectorAll(".auth-hero .brand, .auth-hero h1, .auth-hero .lead, .hero-card, .hero-feats span")], { opacity: [0, 1], y: [14, 0] }, { ...spring, delay: M.stagger(0.05, { startDelay: 0.1 }) });
+      go([document.querySelector(".auth-card")], { opacity: [0, 1], y: [30, 0], scale: [0.98, 1] }, { ...spring, delay: 0.12 });
+      go([...document.querySelectorAll(".auth-card .field, .auth-card .row-between, .auth-card .btn-primary")], { opacity: [0, 1], y: [10, 0] }, { ...spring, delay: M.stagger(0.04, { startDelay: 0.22 }) });
+      document.addEventListener("pointerdown", (e) => { const b = e.target.closest(".btn-primary"); if (b) M.animate(b, { scale: [1, 0.96, 1] }, { duration: 0.28 }); }, { passive: true });
+    })();
+  </script>
+</body>
+</html>
