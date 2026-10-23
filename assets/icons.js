@@ -54,6 +54,7 @@ const ICONS = {
   file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
   sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/>',
   arrowUp: '<path d="m18 15-6-6-6 6"/>',
+  grip: '<circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/>',
   arrowDown: '<path d="m6 9 6 6 6-6"/>',
   google: '<path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.5a4.7 4.7 0 0 1-2 3.1v2.5h3.3c1.9-1.8 3-4.4 3-7.5z" fill="#4285F4" stroke="none"/><path d="M12 22c2.7 0 5-.9 6.7-2.4l-3.3-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3v2.6A10 10 0 0 0 12 22z" fill="#34A853" stroke="none"/><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3a10 10 0 0 0 0 9.2z" fill="#FBBC05" stroke="none"/><path d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3 7.4L6.4 10c.8-2.3 3-4.1 5.6-4.1z" fill="#EA4335" stroke="none"/>',
   microsoft: '<path d="M3 3h8.5v8.5H3z" fill="#F25022" stroke="none"/><path d="M12.5 3H21v8.5h-8.5z" fill="#7FBA00" stroke="none"/><path d="M3 12.5h8.5V21H3z" fill="#00A4EF" stroke="none"/><path d="M12.5 12.5H21V21h-8.5z" fill="#FFB900" stroke="none"/>',
@@ -62,18 +63,21 @@ function icon(name, cls = '') {
   return `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 }
 
-// Tema claro/escuro compartilhado entre login e painel
+// Tema claro/escuro compartilhado entre login e painel.
+// O claro (branco) é o padrão; o escuro só entra se a pessoa escolher.
 const Theme = {
   get() {
-    try { return localStorage.getItem('sumos-theme'); } catch { return null; }
+    try {
+      // uma vez só: quem já tinha um tema salvo volta para o claro padrão
+      if (!localStorage.getItem('sumos-theme-v2')) { localStorage.removeItem('sumos-theme'); localStorage.setItem('sumos-theme-v2', '1'); }
+      return localStorage.getItem('sumos-theme') || 'light';
+    } catch { return 'light'; }
   },
   apply(t) {
-    if (t) document.documentElement.setAttribute('data-theme', t);
-    else document.documentElement.removeAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', t || 'light');
   },
   isDark() {
-    const t = document.documentElement.getAttribute('data-theme');
-    return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    return document.documentElement.getAttribute('data-theme') === 'dark';
   },
   toggle() {
     const next = this.isDark() ? 'light' : 'dark';

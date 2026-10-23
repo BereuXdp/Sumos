@@ -113,10 +113,27 @@ function osFiltered() {
     if (a.to && (!o.scheduledAt || o.scheduledAt.slice(0, 10) > a.to)) return false;
     if (q && !q.split(/\s+/).every((w) => [o.code, client(o.clientId).name, o.issue, o.solution, o.requester, o.computer, o.tech, o.type].join(' ').toLowerCase().includes(w))) return false;
     return true;
-  }).sort((x, y) => (y.pinned ? 1 : 0) - (x.pinned ? 1 : 0)
+  }).sort(osCompare());
+}
+// Ordem da lista: fixadas primeiro; depois a ordem que o usuário arrumou (OS novas entram no topo);
+// sem ordem salva, fechadas por último e por urgência
+function osCompare() {
+  const ord = D().osOrder, pos = new Map((ord || []).map((id, i) => [id, i]));
+  const rank = (o) => (pos.has(o.id) ? pos.get(o.id) : -1);
+  return (x, y) => (y.pinned ? 1 : 0) - (x.pinned ? 1 : 0)
+    || (ord ? rank(x) - rank(y) : 0)
     || (osClosed(x) ? 1 : 0) - (osClosed(y) ? 1 : 0)
     || ['critica', 'alta', 'normal'].indexOf(x.urgency) - ['critica', 'alta', 'normal'].indexOf(y.urgency)
-    || (x.scheduledAt || '9').localeCompare(y.scheduledAt || '9'));
+    || (x.scheduledAt || '9').localeCompare(y.scheduledAt || '9');
+}
+
+// Coloca a OS antes/depois de outra e salva a ordem completa da lista
+function osMove(id, refId, place) {
+  const ids = D().orders.slice().sort(osCompare()).map((o) => o.id).filter((x) => x !== id);
+  const i = ids.indexOf(refId);
+  ids.splice(place === 'after' ? i + 1 : i, 0, id);
+  D().osOrder = ids;
+  DB.save();
 }
 
 function osCardMenu(o) {
@@ -127,6 +144,8 @@ function osCardMenu(o) {
       <button role="menuitem" data-act="ver" data-id="${o.id}">${icon('file')}Ver detalhes</button>
       <button role="menuitem" data-act="pdf" data-id="${o.id}">${icon('download')}Exportar PDF</button>
       <button role="menuitem" data-act="editar" data-id="${o.id}">${icon('edit')}Editar</button>
+      <button role="menuitem" data-act="subir" data-id="${o.id}">${icon('arrowUp')}Mover para cima</button>
+      <button role="menuitem" data-act="descer" data-id="${o.id}"><span style="display:inline-flex;transform:rotate(180deg)">${icon('arrowUp')}</span>Mover para baixo</button>
       <button role="menuitem" data-act="agendar" data-id="${o.id}">${icon('calendar')}${o.scheduledAt ? 'Reagendar' : 'Agendar'}</button>
       <a role="menuitem" href="${mapsLink(client(o.clientId).address || client(o.clientId).name)}" target="_blank" rel="noopener">${icon('pin')}Ver endereço</a>
     </div>
@@ -165,6 +184,30 @@ function osCard(o) {
   </article>`;
 }
 
+// Linha da visualização em lista: uma OS por linha, em colunas
+function osRow(o) {
+  const c = client(o.clientId);
+  const when = o.scheduledAt || o.openedAt;
+  return `<article class="os-card os-row ${OS_STATE.sel.has(o.id) ? 'selected' : ''} ${o.pinned ? 'pinned' : ''}" data-id="${o.id}" style="--c:${svcColor(o)}">
+    <button class="or-grip" type="button" data-grip="${o.id}" title="Arraste para mudar a posição (ou use as setas ↑ ↓)" aria-label="Mover OS ${osCode(o, true)}. Use as setas para cima e para baixo">${icon('grip')}</button>
+    <div class="or-main">
+      <div class="or-title"><span class="oc-code">${osCode(o, true)}</span><h4 title="${esc(c.name)}">${esc(c.name)}</h4></div>
+      <p class="or-desc" title="${esc(o.issue)}">${esc(o.issue)}</p>
+    </div>
+    <div class="or-chips">
+      ${softChip(urgOf(o).color, urgOf(o).label)}
+      ${softChip(STATUS[o.status].color, STATUS[o.status].label)}
+      ${isLate(o) ? softChip('#FF3B30', 'Atrasada', 'clock') : ''}
+    </div>
+    <span class="oc-tech or-tech">${o.tech ? avatar(o.tech) + `<span>${esc(o.tech)}</span>` : `<span class="avatar sm no-tech">${icon('user')}</span><span class="muted">Sem técnico</span>`}</span>
+    <span class="oc-when or-when" title="${o.scheduledAt ? 'Agendamento' : 'Abertura'}: ${fmtDT(when)}">${icon(o.scheduledAt ? 'calendar' : 'clock')}${shortDT(when)}</span>
+    <span class="oc-tools">
+      <button class="oc-icon ${o.pinned ? 'on' : ''}" data-pin="${o.id}" title="${o.pinned ? 'Desafixar' : 'Fixar no topo'}" aria-label="${o.pinned ? 'Desafixar' : 'Fixar no topo'}">${icon('pushpin')}</button>
+      ${osCardMenu(o)}
+    </span>
+  </article>`;
+}
+
 PAGES.ordens = {
   render() {
     const all = D().orders;
@@ -177,6 +220,7 @@ PAGES.ordens = {
         <div class="actions">
           <div class="tabs-inline" style="padding:4px">
             <button data-layout="lista" class="${OS_STATE.layout === 'lista' ? 'on' : ''}">${icon('list')} Lista</button>
+            <button data-layout="cartoes" class="${OS_STATE.layout === 'cartoes' ? 'on' : ''}">${icon('grid')} Cartões</button>
             <button data-layout="quadro" class="${OS_STATE.layout === 'quadro' ? 'on' : ''}">${icon('kanban')} Quadro</button>
           </div>
           <button class="btn btn-ghost" id="batchBtn"><span data-icon="list"></span>Abrir em lote</button>
@@ -220,7 +264,10 @@ PAGES.ordens = {
       return;
     }
     if (OS_STATE.layout === 'quadro') return this.kanban(list);
-    $('#osBody').innerHTML = `<div class="os-list">${list.map(osCard).join('')}</div><p class="hint" style="margin:12px 0 0">${list.length} OS · as fixadas aparecem primeiro, depois por urgência.</p>`;
+    const rows = OS_STATE.layout !== 'cartoes';
+    $('#osBody').innerHTML = (rows
+      ? `<div class="os-rows"><div class="os-rows-head" aria-hidden="true"><span></span><span>OS / Cliente</span><span>Situação</span><span>Técnico</span><span>Data</span><span></span></div>${list.map(osRow).join('')}</div>`
+      : `<div class="os-list">${list.map(osCard).join('')}</div>`) + `<div class="os-order-hint"><p class="hint">${list.length} OS · ${D().osOrder ? 'na ordem que você arrumou (as fixadas ficam no topo)' : 'as fixadas aparecem primeiro, depois por urgência'}${rows ? ' · arraste pela alça ⋮⋮ para mudar a posição' : ''}.</p>${D().osOrder ? `<button class="btn btn-ghost btn-sm" id="osOrderReset">${icon('repeat')}Voltar à ordem automática</button>` : ''}</div>`;
     $$('#osBody .os-card').forEach((card) => (card.onclick = (e) => {
       if (e.target.closest('button, a, label, input')) return;
       openOrder(card.dataset.id);
@@ -239,8 +286,85 @@ PAGES.ordens = {
     $$('#osBody [data-menu]').forEach((b) => bindDropdown('#m' + b.dataset.menu, `[data-menu="${b.dataset.menu}"]`));
     $$('#osBody [data-act]').forEach((b) => (b.onclick = () => {
       const id = +b.dataset.id;
-      ({ ver: () => openOrder(id), pdf: () => printOrder(id), editar: () => openNewOrder(null, id), agendar: () => openSchedule(id) })[b.dataset.act]();
+      ({ ver: () => openOrder(id), pdf: () => printOrder(id), editar: () => openNewOrder(null, id), agendar: () => openSchedule(id), subir: () => this.step(id, -1), descer: () => this.step(id, 1) })[b.dataset.act]();
     }));
+    const reset = $('#osOrderReset');
+    if (reset) reset.onclick = () => { delete D().osOrder; DB.save(); this.body(); toast('Ordem automática restaurada', 'repeat'); };
+    $$('#osBody [data-grip]').forEach((g) => {
+      g.onpointerdown = (e) => this.drag(e, g);
+      g.onkeydown = (e) => {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+        e.preventDefault();
+        this.step(+g.dataset.grip, e.key === 'ArrowUp' ? -1 : 1, true);
+      };
+    });
+  },
+  // Move uma OS uma posição (entre as visíveis e do mesmo grupo: fixadas / não fixadas)
+  step(id, dir, keepFocus) {
+    const o = orderById(id), list = osFiltered().filter((x) => !!x.pinned === !!o.pinned);
+    const i = list.findIndex((x) => x.id === id), ref = list[i + dir];
+    if (!ref) return toast(dir < 0 ? 'Essa OS já está no topo' : 'Essa OS já é a última', 'alert');
+    osMove(id, ref.id, dir < 0 ? 'before' : 'after');
+    this.afterMove(id, keepFocus);
+  },
+  afterMove(id, keepFocus) {
+    this.body();
+    const row = $(`#osBody .os-card[data-id="${id}"]`);
+    if (!row) return;
+    row.classList.add('just-moved');
+    setTimeout(() => row.classList.remove('just-moved'), 900);
+    if (keepFocus) row.querySelector('[data-grip]')?.focus();
+    const r = row.getBoundingClientRect();
+    if (r.top < 70 || r.bottom > innerHeight) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  },
+  // Arrastar pela alça (mouse ou dedo): as outras linhas abrem espaço; ao soltar, salva a nova posição
+  drag(e, grip) {
+    if (e.button > 0) return;
+    e.preventDefault();
+    const row = grip.closest('.os-row'), id = +row.dataset.id;
+    const rows = $$('#osBody .os-row').filter((r) => r.classList.contains('pinned') === row.classList.contains('pinned'));
+    const from = rows.indexOf(row), sy0 = scrollY, y0 = e.clientY;
+    const mids = rows.map((r) => { const b = r.getBoundingClientRect(); return b.top + sy0 + b.height / 2; });
+    const h = row.getBoundingClientRect().height;
+    let to = from, lastY = y0, timer = null, moved = false;
+    try { grip.setPointerCapture(e.pointerId); } catch {}
+    row.classList.add('dragging');
+    document.body.classList.add('os-dragging');
+    const update = () => {
+      const dy = lastY - y0 + (scrollY - sy0);
+      if (Math.abs(dy) > 3) moved = true;
+      row.style.transform = `translateY(${dy}px)`;
+      const center = mids[from] + dy;
+      to = from;
+      rows.forEach((r, j) => {
+        let shift = 0;
+        if (j > from && center > mids[j]) { shift = -h; to = Math.max(to, j); }
+        if (j < from && center < mids[j]) { shift = h; to = Math.min(to, j); }
+        if (j !== from) r.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
+    // rolagem automática perto das bordas
+    timer = setInterval(() => {
+      const edge = 90;
+      if (lastY < edge) { scrollBy(0, -Math.ceil((edge - lastY) / 6)); update(); }
+      else if (lastY > innerHeight - edge) { scrollBy(0, Math.ceil((lastY - innerHeight + edge) / 6)); update(); }
+    }, 16);
+    const move = (ev) => { lastY = ev.clientY; update(); };
+    const end = () => {
+      clearInterval(timer);
+      grip.removeEventListener('pointermove', move);
+      grip.removeEventListener('pointerup', end);
+      grip.removeEventListener('pointercancel', end);
+      document.body.classList.remove('os-dragging');
+      rows.forEach((r) => { r.style.transform = ''; r.classList.remove('dragging'); });
+      if (!moved || to === from) return;
+      osMove(id, rows[to].dataset.id * 1, to > from ? 'after' : 'before');
+      this.afterMove(id);
+      toast('Posição da OS atualizada', 'check');
+    };
+    grip.addEventListener('pointermove', move);
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
   },
   bulk() {
     const n = OS_STATE.sel.size, bar = $('#bulkBar');

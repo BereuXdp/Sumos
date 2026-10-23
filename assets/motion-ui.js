@@ -233,7 +233,7 @@
 
   /* ---------- cartões “levantam” ao passar o mouse ---------- */
   if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    const LIFT = '.os-card, .rcard, .op-kpi, .os-kpi, .kcard, .rep-kpi';
+    const LIFT = '.os-card:not(.os-row), .rcard, .op-kpi, .os-kpi, .kcard, .rep-kpi';
     document.addEventListener('pointerover', (e) => {
       const c = e.target.closest(LIFT);
       if (!c || !ok() || c.contains(e.relatedTarget)) return;
