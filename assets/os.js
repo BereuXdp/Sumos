@@ -437,28 +437,77 @@ function openAdvFilters() {
 
 // "Abrir em lote": várias OS de uma vez, uma por linha
 function openBatch() {
+  const sel = new Set();
   openDrawer(`
-    ${drawerHead('Abrir OS em lote', 'Uma OS para cada linha da descrição')}
-    <form class="drawer-body" id="batchForm">
+    ${drawerHead('Abrir OS em lote', 'Uma OS para cada linha da descrição, em cada cliente escolhido')}
+    <form class="drawer-body" id="batchForm" novalidate>
       <div class="form-grid">
-        <div class="field full"><label for="bCli">Cliente</label><select class="input" id="bCli">${D().clients.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div>
+        <div class="field full">
+          <label for="msBtn">Clientes</label>
+          <div class="ms" id="ms">
+            <button type="button" class="input ms-trigger" id="msBtn" aria-haspopup="listbox" aria-expanded="false"><span id="msText">Selecione os clientes</span>${icon('chevD')}</button>
+            <div class="ms-pop" id="msPop" hidden>
+              <div class="input-wrap">${icon('search')}<input class="input" id="msSearch" placeholder="Buscar cliente..." autocomplete="off"></div>
+              <div class="ms-bulk"><button type="button" class="btn btn-ghost btn-sm" id="msAll">Marcar todos</button><button type="button" class="btn btn-ghost btn-sm" id="msNone">Limpar</button></div>
+              <div class="ms-list" id="msList" role="listbox" aria-multiselectable="true"></div>
+            </div>
+          </div>
+          <div class="ms-chips" id="msChips"></div>
+          <div class="err" id="bCliErr"></div>
+        </div>
         <div class="field"><label for="bTech">Técnico responsável</label><select class="input" id="bTech"><option value="">Sem técnico</option>${D().techs.map((t) => `<option>${esc(t)}</option>`).join('')}</select></div>
         <div class="field"><label for="bType">Tipo de serviço</label><select class="input" id="bType">${SERVICE_TYPES.map((t) => `<option>${t}</option>`).join('')}</select></div>
         <div class="field"><label for="bMod">Modalidade</label><select class="input" id="bMod"><option>Presencial</option><option>Remoto</option></select></div>
         <div class="field"><label for="bUrg">Nível de urgência</label><select class="input" id="bUrg">${Object.entries(URG).map(([k, u]) => `<option value="${k}">${u.label} (${u.sla})</option>`).join('')}</select></div>
-        <div class="field full"><label for="bLines">Descrições (uma por linha)</label><textarea class="input" id="bLines" rows="8" placeholder="Instalar antivírus no PC do caixa&#10;Trocar cabo de rede da sala 2&#10;Configurar impressora do RH" required></textarea></div>
+        <div class="field full"><label for="bLines">Descrições (uma por linha)</label><textarea class="input" id="bLines" rows="8" placeholder="Instalar antivírus no PC do caixa&#10;Trocar cabo de rede da sala 2&#10;Configurar impressora do RH"></textarea><div class="err" id="bLinesErr"></div></div>
       </div>
       <p class="hint" id="bCount">0 OS serão criadas</p>
     </form>
     <div class="drawer-foot"><button class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" type="submit" form="batchForm">${icon('check')}Abrir OS</button></div>`, { focus: true });
+
   const lines = () => $('#bLines').value.split('\n').map((l) => l.trim()).filter(Boolean);
-  $('#bLines').oninput = () => ($('#bCount').textContent = `${lines().length} OS serão criadas`);
+  const count = () => {
+    const l = lines().length, c = sel.size, n = l * c;
+    $('#bCount').textContent = c > 1 && l ? `${n} OS serão criadas (${l} descriç${l > 1 ? 'ões' : 'ão'} × ${c} clientes)` : `${n} OS serão criada${n === 1 ? '' : 's'}`;
+  };
+  // seleção de vários clientes, com busca
+  const pop = $('#msPop'), btn = $('#msBtn');
+  const setOpen = (o) => { pop.hidden = !o; btn.setAttribute('aria-expanded', o); $('#ms').classList.toggle('open', o); if (o) { $('#msSearch').focus(); requestAnimationFrame(() => pop.scrollIntoView({ block: 'nearest', behavior: 'smooth' })); } };
+  const visible = () => {
+    const q = $('#msSearch').value.trim().toLowerCase();
+    return D().clients.slice().sort((a, b) => a.name.localeCompare(b.name)).filter((c) => !q || c.name.toLowerCase().includes(q));
+  };
+  const paint = () => {
+    const rows = visible().map((c) => `<div class="ms-opt ${sel.has(c.id) ? 'on' : ''}"><label><input type="checkbox" data-cli="${c.id}" ${sel.has(c.id) ? 'checked' : ''}><span>${esc(c.name)}</span></label></div>`).join('');
+    $('#msList').innerHTML = rows || '<div class="muted" style="padding:10px">Nenhum cliente encontrado.</div>';
+    $$('#msList [data-cli]').forEach((cb) => (cb.onchange = () => { cb.checked ? sel.add(+cb.dataset.cli) : sel.delete(+cb.dataset.cli); paint(); chips(); }));
+  };
+  const chips = () => {
+    const n = sel.size;
+    $('#msText').textContent = n ? `${n} cliente${n > 1 ? 's' : ''} selecionado${n > 1 ? 's' : ''}` : 'Selecione os clientes';
+    $('#msChips').innerHTML = [...sel].map((id) => `<span class="ms-chip">${esc(client(id).name)}<button type="button" data-rm="${id}" aria-label="Remover ${esc(client(id).name)}">${icon('x')}</button></span>`).join('');
+    $$('#msChips [data-rm]').forEach((b) => (b.onclick = () => { sel.delete(+b.dataset.rm); chips(); if (!pop.hidden) paint(); }));
+    if (n) { btn.classList.remove('invalid'); $('#bCliErr').textContent = ''; }
+    count();
+  };
+  btn.onclick = () => { setOpen(pop.hidden); if (!pop.hidden) paint(); };
+  $('#msSearch').oninput = paint;
+  $('#msAll').onclick = () => { visible().forEach((c) => sel.add(c.id)); paint(); chips(); };
+  $('#msNone').onclick = () => { sel.clear(); paint(); chips(); };
+  $('#ms').addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { e.stopPropagation(); setOpen(false); btn.focus(); } });
+  $('#drawer').addEventListener('click', (e) => { if (!pop.hidden && $('#ms') && !$('#ms').contains(e.target)) setOpen(false); });
+  chips();
+
+  $('#bLines').oninput = () => { $('#bLines').classList.remove('invalid'); $('#bLinesErr').textContent = ''; count(); };
   $('#batchForm').onsubmit = (e) => {
     e.preventDefault();
     const ls = lines();
-    if (!ls.length) return;
-    ls.forEach((issue) => createOrder({ clientId: +$('#bCli').value, tech: $('#bTech').value, type: $('#bType').value, modality: $('#bMod').value, urgency: $('#bUrg').value, issue }));
-    closeDrawer(); refresh(); toast(`${ls.length} OS abertas em lote`);
+    if (!sel.size) { btn.classList.add('invalid'); $('#bCliErr').textContent = 'Escolha pelo menos um cliente.'; return btn.focus(); }
+    if (!ls.length) { $('#bLines').classList.add('invalid'); $('#bLinesErr').textContent = 'Escreva pelo menos uma descrição.'; return $('#bLines').focus(); }
+    const base = { tech: $('#bTech').value, type: $('#bType').value, modality: $('#bMod').value, urgency: $('#bUrg').value };
+    sel.forEach((clientId) => ls.forEach((issue) => createOrder({ ...base, clientId, issue })));
+    const n = ls.length * sel.size;
+    closeDrawer(); refresh(); toast(`${n} OS abertas em lote${sel.size > 1 ? ` para ${sel.size} clientes` : ''}`);
   };
 }
 

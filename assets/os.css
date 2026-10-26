@@ -560,3 +560,5 @@ body.os-dragging, body.os-dragging * { cursor: grabbing !important; user-select:
 @keyframes osMoved { 0% { background: color-mix(in srgb, var(--brand) 22%, transparent); } 100% { background: transparent; } }
 .os-order-hint { display: flex; align-items: center; justify-content: flex-start; gap: 10px; flex-wrap: wrap; margin: 12px 0 0; }
 .os-order-hint .hint { margin: 0; }
+.ms-bulk { display: flex; gap: 6px; margin: 0 0 6px; }
+.ms-bulk .btn { height: 30px; font-size: 12.5px; }
